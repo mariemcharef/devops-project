@@ -1,5 +1,4 @@
-# NodeJS Template API
-
+# DevOps Project: Node.js Express API with Docker
 A modern Node.js Express API with user authentication, post management, and Docker support.
 
 ## Table of Contents
