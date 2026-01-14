@@ -33,7 +33,7 @@ describe('User API', () => {
     });
 
     it('should login a user with correct credentials', async () => {
-        await User.create({ username: 'user', email: 'user@test.com', password: hashedPassword });
+        await User.create({ username: 'user', email: 'user@test.com', password: 'pass123' });
         const res = await request(app).post('/api/v1/users/login').send({
             email: 'user@test.com',
             password: 'pass123'
