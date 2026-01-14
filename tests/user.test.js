@@ -2,6 +2,7 @@ import request from 'supertest';
 import app from '../src/app.js'; 
 import { connectDB, disconnectDB, clearDB } from './setup.js';
 import { User } from '../src/models/user.model.js';
+
 import bcrypt from 'bcryptjs';
 
 beforeAll(async () => await connectDB());
@@ -33,7 +34,8 @@ describe('User API', () => {
     });
 
     it('should login a user with correct credentials', async () => {
-        await User.create({ username: 'user', email: 'user@test.com', password: 'pass123' });
+        const hashedPassword = await bcrypt.hash('pass123', 10);
+        await User.create({ username: 'user', email: 'user@test.com', password: hashedPassword });
         const res = await request(app).post('/api/v1/users/login').send({
             email: 'user@test.com',
             password: 'pass123'
