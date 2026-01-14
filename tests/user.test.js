@@ -2,7 +2,7 @@ import request from 'supertest';
 import app from '../src/app.js'; 
 import { connectDB, disconnectDB, clearDB } from './setup.js';
 import { User } from '../src/models/user.model.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 beforeAll(async () => await connectDB());
 afterEach(async () => await clearDB());
