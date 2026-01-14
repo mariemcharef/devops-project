@@ -33,7 +33,6 @@ describe('User API', () => {
     });
 
     it('should login a user with correct credentials', async () => {
-        const hashedPassword = await bcrypt.hash('pass123', 10);
         await User.create({ username: 'user', email: 'user@test.com', password: hashedPassword });
         const res = await request(app).post('/api/v1/users/login').send({
             email: 'user@test.com',
