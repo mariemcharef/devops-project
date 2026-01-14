@@ -28,7 +28,7 @@ const loginUser = async (req, res) =>{
             if(!isMatch){
                 return res.status(400).json({ message: "Invalid credentials!"})
             }
-            res.status(200).json()({ user: {id: user._id, email: user.email, username: user.username}})
+            res.status(200).json({ user: {id: user._id, email: user.email, username: user.username}})
     }catch(err){
         res.status(500).json({ message: `Server error: ${err}`, err: err.message });
     }

@@ -13,7 +13,7 @@ const createPost = async (req, res) => {
         res.status(201).json({
             post: {id: post._id, name: post.name, description: post.description}
         })
-        }catch{
+        }catch(err){ 
             res.status(500).json({ message: `Server error: ${err}`, err: err.message });
     }
 }
