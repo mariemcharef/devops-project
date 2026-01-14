@@ -1,24 +1,29 @@
-name: Node.js CI/CD Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/devops-project
+  MONGODB_URI: mongodb://mongo:27017/test_db
 
 jobs:
   build-test-deploy:
     runs-on: ubuntu-latest
-
+    
     services:
       mongo:
         image: mongo:7
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
         ports:
           - 27017:27017
-        options: >-
-          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
 
     steps:
       - name: Checkout code
@@ -27,27 +32,99 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
+
 
       - name: Install dependencies
         run: npm install
 
-      - name: Run tests
+      # ============================================
+      # SAST - Static Application Security Testing
+      # ============================================
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/node@master
+        continue-on-error: true  # Don't fail the build on vulnerabilities 
         env:
-          MONGO_URI: mongodb://localhost:27017/testdb
-        run: npm test
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --json-file-output=snyk-report.json
 
-      - name: Login to DockerHub
+      - name: Upload Snyk report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: snyk-security-report
+          path: snyk-report.json
+
+      # ============================================
+      # Run Tests
+      # ============================================
+      - name: Run tests
+        run: npm test
+        env:
+          MONGODB_URI: ${{ env.MONGODB_URI }}
+
+      # ============================================
+      # Docker Build and Push
+      # ============================================
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Docker Image
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-project .
+      - name: Build Docker image
+        run: docker build -t ${{ env.DOCKER_IMAGE }}:latest .
 
-      - name: Push Docker Image
+      - name: Push Docker image
+        run: docker push ${{ env.DOCKER_IMAGE }}:latest
+
+      # ============================================
+      # DAST - Dynamic Application Security Testing
+      # ============================================
+      # Start app
+      - name: Start application for DAST
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/devops-project
-      
+          docker run -d -p 4000:4000 \
+            --name test-app \
+            -e MONGODB_URI=mongodb://host.docker.internal:27017/test_db \
+            -e PORT=4000 \
+            --add-host=host.docker.internal:host-gateway \
+            ${{ env.DOCKER_IMAGE }}:latest
+
+      # Wait until ready
+      - name: Wait for app
+        run: |
+          for i in {1..20}; do
+            curl -f http://localhost:4000/health && break
+            echo "Waiting..."
+            sleep 3
+          done
+
+      # ZAP scan
+      - name: Run OWASP ZAP DAST Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://localhost:4000'
+          allow_issue_writing: false
+          cmd_options: '-a'
+        env:
+          ZAP_WORKDIR: /tmp
+        continue-on-error: true
+
+      # Upload report
+      - name: Upload ZAP report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap_baseline_report
+          path: |
+            report_html.html
+            report_json.json
+            report_md.md
+
+      # Stop app
+      - name: Stop test application
+        if: always()
+        run: |
+          docker ps -a | grep test-app && docker stop test-app && docker rm test-app || echo "Container not running"

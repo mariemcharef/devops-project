@@ -2,3 +2,8 @@
 package-lock.json
 node_modules/
 
+# Security scan reports
+snyk-report.json
+report_html.html
+report_md.md
+report_json.json
