@@ -19,6 +19,7 @@ A comprehensive backend REST API demonstrating modern DevOps practices end-to-en
 - [Project Structure](#project-structure)
 - [Development Guide](#development-guide)
 - [Troubleshooting](#troubleshooting)
+- [Documentation](#documentation)
 
 ---
 
@@ -1433,6 +1434,12 @@ This project demonstrates:
 ✅ **Testing**: Comprehensive unit and integration tests  
 ✅ **Code Organization**: Separation of concerns (models, controllers, routes)  
 ✅ **Documentation**: Clear setup, deployment, and API documentation  
+
+---
+
+## Documentation
+
+- [DevOps Report](./devops_report.pdf) - Comprehensive DevOps project analysis and implementation details
 
 ---
 
