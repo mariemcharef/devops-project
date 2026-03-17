@@ -15,6 +15,7 @@ spec:
       containers:
         - name: node-app
           image: devops-project:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 4000
           env:
